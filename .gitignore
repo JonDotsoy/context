@@ -192,3 +192,4 @@ $RECYCLE.BIN/
 *.js
 *.d.ts
 !.ts
+!.github

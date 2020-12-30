@@ -4,7 +4,7 @@
     "access": "public",
     "tag": "beta"
   },
-  "version": "1.0.0",
+  "version": "1.0.0-beta.0",
   "description": "(Proposal) Strtegy app context, this strategy is used to share different context by the shadown compoennt.",
   "scripts": {
     "test": "jest",
