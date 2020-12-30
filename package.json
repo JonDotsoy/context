@@ -2,11 +2,11 @@
   "name": "@jondotsoy/context",
   "publishConfig": {
     "access": "public",
-    "tag": "beta"
+    "tag": "latest"
   },
   "main": "./src/AppContext.js",
-  "version": "1.0.0-beta.1",
-  "description": "(Proposal) Strtegy app context, this strategy is used to share different context by the shadown compoennt.",
+  "version": "1.0.0-beta.2",
+  "description": "A proposal to write code more legible, it used through a context relative to your app.",
   "scripts": {
     "prepare": "tsc",
     "test": "jest",

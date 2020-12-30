@@ -1,8 +1,7 @@
 # Proposal AppContext
 
-(Proposal) Strtegy app context, this strategy is used to share different context by the shadown compoennt.
+A proposal to write code more legible, it used through a context relative to your app.
 
-**Implementations:**
-
+**Inspirations:**
 - NestJs
 - ReactJS
