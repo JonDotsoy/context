@@ -4,9 +4,11 @@
     "access": "public",
     "tag": "beta"
   },
-  "version": "1.0.0-beta.0",
+  "main": "./src/AppContext.js",
+  "version": "1.0.0-beta.1",
   "description": "(Proposal) Strtegy app context, this strategy is used to share different context by the shadown compoennt.",
   "scripts": {
+    "prepare": "tsc",
     "test": "jest",
     "test:watch": "jest --watch"
   },
