@@ -5,3 +5,5 @@ tsconfig.json
 .github
 jest.config.js
 *.tgz
+!*.d.ts
+*.spec.d.ts
