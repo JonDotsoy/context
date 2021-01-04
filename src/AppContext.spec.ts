@@ -310,4 +310,27 @@ describe('AppContext', () => {
     expect(e2.config2).toBeUndefined()
   })
 
+  it('Attach with token defined', () => {
+    const token1 = Symbol('token')
+    const token2 = Symbol('token')
+
+    class MyConfig { constructor(readonly n: any) { } }
+
+    @withContext()
+    class MyApp {
+      constructor(
+        @useSelectContext(token1)
+        readonly config1?: MyConfig,
+        readonly config2 = selectContext(token2, MyConfig, ['b']),
+      ) { }
+    }
+
+    const ctx = new AppContext().attach(token1, new MyConfig('a'))
+
+    const a = runWithContext(ctx, () => new MyApp())
+
+    expect(a.config1).toBeInstanceOf(MyConfig)
+    expect(a.config2.n).toEqual('b')
+  })
+
 });

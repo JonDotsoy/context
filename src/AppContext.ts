@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 
 type C<T = any> = { new(...a: any[]): T }
 type A<T> = T extends { new(...a: infer R): any } ? R : [];
@@ -8,6 +9,50 @@ type R<T, T2> =
   : T2 extends A<T>
   ? E<T>
   : never
+type token = string | Symbol | Object
+type attachArgs<T> =
+  | [T]
+  | [token, T]
+type selectContextArgs<T, T2 extends A<T> | undefined> =
+  | [T | token]
+  | [T, T2]
+  | [token, T, T2]
+
+const attachArgsToAttachOptions = <T>(...args: attachArgs<T>) => {
+  if (args.length === 1) {
+    const [value] = args
+    return {
+      value,
+      token: Object.getPrototypeOf(value).constructor,
+    }
+  } else if (args.length === 2) {
+    const [token, value] = args
+    return {
+      value,
+      token,
+    }
+  }
+  throw new TypeError('Cannot found token')
+}
+
+const selectContextArgsToSelectContextOptions = <T, T2 extends A<T> | undefined>(...args: selectContextArgs<T, T2>): { token: token, key?: T, defaultAttach?: T2 } => {
+  switch (args.length) {
+    case 1: return {
+      token: args[0],
+    }
+    case 2: return {
+      token: args[0],
+      key: args[0],
+      defaultAttach: args[1],
+    }
+    case 3: return {
+      token: args[0],
+      key: args[1],
+      defaultAttach: args[2],
+    }
+    default: throw new TypeError('')
+  }
+}
 
 const isClass = (a: any): a is { new(...a: any[]): any } => typeof Object.getPrototypeOf(a)?.constructor === 'function'
 
@@ -23,13 +68,15 @@ export class AppContext {
       : new Map()
   }
 
-  attach(value: any) {
-    this.contexts.set(Object.getPrototypeOf(value).constructor, value);
+  attach<T>(...args: attachArgs<T>) {
+    const { token, value } = attachArgsToAttachOptions(...args)
+    this.contexts.set(token, value);
     return this;
   }
 
-  selectContext<T, T2 extends A<T> | undefined>(key: T, defaultAttach?: T2): R<T, T2> {
-    const v: R<T, T2> = this.contexts.get(key);
+  selectContext<T, T2 extends A<T> | undefined>(...args: selectContextArgs<T, T2>): R<T, T2> {
+    const { token, key, defaultAttach } = selectContextArgsToSelectContextOptions(...args)
+    const v: R<T, T2> = this.contexts.get(token);
 
     if (v) return v;
 
@@ -54,8 +101,8 @@ export class GlobalContaintContext {
     return this.contextSelected[this.contextSelected.length - 1];
   }
 
-  selectContext<T, T2 extends A<T> | undefined>(key: T, defaultAttach?: T2) {
-    return this.contextSelected[this.contextSelected.length - 1]?.selectContext(key, defaultAttach)
+  selectContext<T, T2 extends A<T> | undefined>(...args: selectContextArgs<T, T2>) {
+    return this.contextSelected[this.contextSelected.length - 1]?.selectContext(...args)
   }
 
   private attashContext(context: AppContext) {
@@ -73,18 +120,14 @@ export class GlobalContaintContext {
     return rfn
   }
 
-  withContext() {
-
-  }
-
   private static g = new GlobalContaintContext()
 
   static selectCurrentContext() {
     return this.g.selectCurrentContext()
   }
 
-  static selectContext<T, T2 extends A<T> | undefined>(key: T, defaultAttach?: T2) {
-    return this.g.selectContext(key, defaultAttach)
+  static selectContext<T, T2 extends A<T> | undefined>(...args: selectContextArgs<T, T2>) {
+    return this.g.selectContext(...args)
   }
 
   static run<T>(ctx: AppContext, fn: () => T) {
@@ -96,7 +139,7 @@ export class GlobalContaintContext {
  * @alias
  * GlobalContaintContext.selectContext(key, defaultAttach)
  */
-export const selectContext = <T, T2 extends A<T> | undefined>(key: T, defaultAttach?: T2) => GlobalContaintContext.selectContext(key, defaultAttach)
+export const selectContext = <T, T2 extends A<T> | undefined>(...args: selectContextArgs<T, T2>) => GlobalContaintContext.selectContext(...args)
 /**
  * @alias
  * GlobalContaintContext.run(context, fn)
@@ -129,7 +172,7 @@ export const declareSelectContext = <A>(type: A): ParameterDecorator => (target,
   type,
 });
 
-export const withContext = (g?: GlobalContaintContext) => (target: any) => {
+export const withContext = (g?: GlobalContaintContext) => (target: any): any => {
   const metadataValues = getMetadataValues<any>(target)
 
   return class extends target {
