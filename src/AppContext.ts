@@ -66,10 +66,15 @@ export class GlobalContaintContext {
     this.contextSelected.pop()
   }
 
-  run(ctx: AppContext, fn: Function) {
+  run<T>(ctx: AppContext, fn: () => T) {
     this.attashContext(ctx)
-    fn()
+    const rfn = fn()
     this.unattashContext()
+    return rfn
+  }
+
+  withContext() {
+
   }
 
   private static g = new GlobalContaintContext()
@@ -82,8 +87,8 @@ export class GlobalContaintContext {
     return this.g.selectContext(key, defaultAttach)
   }
 
-  static run(ctx: AppContext, fn: Function) {
-    this.g.run(ctx, fn);
+  static run<T>(ctx: AppContext, fn: () => T) {
+    return this.g.run(ctx, fn);
   }
 }
 
@@ -96,10 +101,43 @@ export const selectContext = <T, T2 extends A<T> | undefined>(key: T, defaultAtt
  * @alias
  * GlobalContaintContext.run(context, fn)
  */
-export const runWithContext = (context: AppContext, fn: Function) => GlobalContaintContext.run(context, fn)
+export const runWithContext = <T>(ctx: AppContext, fn: () => T) => GlobalContaintContext.run(ctx, fn)
 
 /**
  * @alias
  * GlobalContaintContext.selectCurrentContext()
  */
 export const selectCurrentContext = (context: AppContext, fn: Function) => GlobalContaintContext.selectCurrentContext();
+
+const MetadataValuesSymbol = Symbol('Symbol(MetadataValuesSymbol)')
+
+type MetadataValue<T> = {
+  type: T
+  key: string | symbol
+  paramIndex: number
+}
+
+const getMetadataValues = <T>(target: any): MetadataValue<T>[] => Reflect.getMetadata(MetadataValuesSymbol, target) ?? []
+const addMetadataValue = <T>(target: any, metadataValue: MetadataValue<T>) => {
+  const premetadataValues = getMetadataValues(target)
+  Reflect.defineMetadata(MetadataValuesSymbol, [metadataValue, ...premetadataValues], target)
+}
+
+export const declareSelectContext = <A>(type: A): ParameterDecorator => (target, key, paramIndex) => addMetadataValue(target, {
+  key,
+  paramIndex,
+  type,
+});
+
+export const withContext = (g?: GlobalContaintContext) => (target: any) => {
+  const metadataValues = getMetadataValues<any>(target)
+
+  return class extends target {
+    constructor(...args: any[]) {
+      for (const metadataValue of metadataValues) {
+        args[metadataValue.paramIndex] = args[metadataValue.paramIndex] ?? (g ? g.selectContext(metadataValue.type) : selectContext(metadataValue.type))
+      }
+      super(...args)
+    }
+  }
+}

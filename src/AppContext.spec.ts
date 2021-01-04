@@ -1,4 +1,5 @@
-import { AppContext, GlobalContaintContext, runWithContext, selectContext } from "./AppContext"
+import 'reflect-metadata';
+import { AppContext, declareSelectContext as useSelectContext, GlobalContaintContext, runWithContext, selectContext, withContext } from "./AppContext";
 
 class Person {
   constructor(
@@ -231,5 +232,82 @@ describe('AppContext', () => {
     );
 
   });
+
+  it('api run with context, return evaluation', () => {
+    const ctx = new AppContext()
+
+    class MyApp { }
+
+    const myApp = runWithContext(ctx, () => new MyApp())
+
+    expect(myApp).toBeInstanceOf(MyApp);
+  })
+
+  it('api selectContext without context', () => {
+    const g = new GlobalContaintContext()
+
+    class MyConfig { }
+    class MyApp {
+      constructor(
+        config = g.selectContext(MyConfig, [])
+      ) {
+        console.log(config)
+      }
+    }
+
+    new MyApp()
+
+  })
+
+  it('syntax with decorator', () => {
+    class MyConfig { }
+
+    @withContext()
+    class MyApp {
+      constructor(
+        @useSelectContext(MyConfig)
+        readonly config1?: MyConfig,
+        @useSelectContext(MyConfig)
+        readonly config2?: MyConfig,
+      ) { }
+    }
+
+    const ctx = new AppContext().attach(new MyConfig())
+
+    const e1 = runWithContext(ctx, () => new MyApp())
+    const e2 = new MyApp()
+
+    expect(e1.config1).toBeInstanceOf(MyConfig)
+    expect(e1.config2).toBeInstanceOf(MyConfig)
+    expect(e2.config1).toBeUndefined()
+    expect(e2.config2).toBeUndefined()
+
+  })
+
+  it('syntax with decorator and custom GlobalContaintContext', () => {
+    const g = new GlobalContaintContext()
+
+    class MyConfig { }
+
+    @withContext(g)
+    class MyApp {
+      constructor(
+        @useSelectContext(MyConfig)
+        readonly config1?: MyConfig,
+        @useSelectContext(MyConfig)
+        readonly config2?: MyConfig,
+      ) { }
+    }
+
+    const ctx = new AppContext().attach(new MyConfig())
+
+    const e1 = g.run(ctx, () => new MyApp())
+    const e2 = new MyApp()
+
+    expect(e1.config1).toBeInstanceOf(MyConfig)
+    expect(e1.config2).toBeInstanceOf(MyConfig)
+    expect(e2.config1).toBeUndefined()
+    expect(e2.config2).toBeUndefined()
+  })
 
 });
